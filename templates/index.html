@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Advanced AI-powered multi-modal emotion detection and music recommendation system with LLM layer">
+    <title>EmotionAI - Multimodal Emotion-Aware Music System</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="background-animation">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="top-navbar">
+            <div class="navbar-logo">
+                <span class="logo-dot">🔴</span>
+                <span class="logo-title">EmotionAI</span>
+            </div>
+
+            <!-- Mode Selector Pills -->
+            <div class="mode-pills">
+                <button class="pill-btn mode-btn active" data-mode="camera" id="cameraModeBtn">
+                    <span class="pill-icon">📷</span> Camera Mode
+                </button>
+                <button class="pill-btn mode-btn" data-mode="text" id="textModeBtn">
+                    <span class="pill-icon">✉️</span> Text Mode
+                </button>
+            </div>
+
+            <!-- Top Right Profile & Python Warning -->
+            <div class="navbar-right">
+
+                <div class="user-profile-badge" id="userProfileBadge">
+                    <span class="user-name" id="userNameText">Hello, User!</span>
+                    <div class="user-avatar">🧔🏻‍♂️</div>
+                </div>
+                <button id="loginBtn" class="btn btn-secondary btn-small" style="margin-left: 10px;">Login</button>
+                <button id="dashboardBtn" class="btn btn-secondary btn-small hidden" style="margin-left: 10px;">Dashboard</button>
+            </div>
+        </header>
+
+        <!-- Main 3-Column Dashboard -->
+        <main class="dashboard-grid-layout">
+            
+            <!-- LEFT COLUMN: Switchable Camera / Text Mode -->
+            <div class="grid-col col-left glass-card">
+
+                <!-- ══ CAMERA MODE SECTION (shown by default) ══ -->
+                <div id="cameraModeSection">
+                    <div class="camera-card-wrapper">
+                        <div class="video-container">
+                            <video id="videoElement" autoplay playsinline></video>
+                            <canvas id="canvasElement" style="display:none;"></canvas>
+                            <div class="face-bounding-box" id="faceOverlay"></div>
+                        </div>
+                    </div>
+
+                    <div class="camera-actions">
+                        <button class="btn btn-primary btn-block" id="analyzeCameraBtn">
+                            📷 Detect Face Emotion
+                        </button>
+                    </div>
+
+                    <!-- Detected Emotion Summary Cards -->
+                    <div class="detected-summary-stack">
+                        <div class="summary-pill-card">
+                            <span class="pill-label">Face Emotion:</span>
+                            <span class="pill-value" id="faceEmotionResult">😡 Angry (80%)</span>
+                        </div>
+                        <div class="summary-pill-card highlight">
+                            <span class="pill-label">Overall Mood:</span>
+                            <span class="pill-value" id="overallEmotionResult">😡 Angry (80%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ TEXT MODE SECTION (hidden by default) ══ -->
+                <div id="textModeSection" class="hidden">
+                    <div class="text-mode-icon">✉️</div>
+                    <h3 class="text-mode-heading">How are you feeling?</h3>
+                    <p class="text-mode-sub">Describe your mood in words — the AI will analyse your sentiment.</p>
+
+                    <div class="text-input-card">
+                        <textarea id="emotionText" rows="5"
+                            placeholder="Type how you feel... (e.g. I'm so frustrated right now! / I feel really happy today)"></textarea>
+                    </div>
+
+                    <div class="camera-actions">
+                        <button class="btn btn-primary btn-block" id="analyzeTextBtn">
+                            ✨ Analyse Text Sentiment
+                        </button>
+                    </div>
+
+                    <!-- Detected Emotion Summary Cards -->
+                    <div class="detected-summary-stack">
+                        <div class="summary-pill-card">
+                            <span class="pill-label">Text Sentiment:</span>
+                            <span class="pill-value quote" id="textSnippetResult">"Feeling..."</span>
+                        </div>
+                        <div class="summary-pill-card highlight">
+                            <span class="pill-label">Overall Mood:</span>
+                            <span class="pill-value" id="overallEmotionResultText">😐 Neutral</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MIDDLE COLUMN: Emotion Analysis, LLM Insight & Music Player -->
+            <div class="grid-col col-middle">
+                
+                <!-- Emotion Analysis Card -->
+                <div class="glass-card middle-card emotion-analysis-card">
+                    <h3 class="card-heading">Emotion Analysis</h3>
+                    <div class="emotion-badges-row">
+                        <div class="emotion-badge-item" data-emotion="Happy">
+                            <div class="badge-icon happy">😊</div>
+                            <span class="badge-label">Happy</span>
+                        </div>
+                        <div class="emotion-badge-item" data-emotion="Sad">
+                            <div class="badge-icon sad">😢</div>
+                            <span class="badge-label">Sad</span>
+                        </div>
+                        <div class="emotion-badge-item active" data-emotion="Angry">
+                            <div class="badge-icon angry">😡</div>
+                            <span class="badge-label">Angry</span>
+                            <span class="detected-tag">Detected</span>
+                        </div>
+                        <div class="emotion-badge-item" data-emotion="Fear">
+                            <div class="badge-icon fear">😨</div>
+                            <span class="badge-label">Fear</span>
+                        </div>
+                        <div class="emotion-badge-item" data-emotion="Surprise">
+                            <div class="badge-icon surprise">😲</div>
+                            <span class="badge-label">Surprise</span>
+                        </div>
+                        <div class="emotion-badge-item" data-emotion="Neutral">
+                            <div class="badge-icon neutral">😐</div>
+                            <span class="badge-label">Neutral</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mood Shift Banner (hidden until a shift is detected) -->
+                <div class="mood-shift-banner hidden" id="moodShiftBanner">
+                    <span class="shift-icon">✨</span>
+                    <div class="shift-text">
+                        <span class="shift-title">Mood Shift Detected</span>
+                        <span class="shift-detail" id="moodShiftDetail">😐 Neutral → 😊 Happy</span>
+                    </div>
+                    <span class="shift-close" onclick="document.getElementById('moodShiftBanner').classList.add('hidden')">✕</span>
+                </div>
+
+                <!-- LLM Insight & Music Intent Card -->
+                <div class="glass-card middle-card llm-insight-card" id="llmInsightCard">
+                    <div class="insight-header">
+                        <span class="sparkle-icon">✨</span>
+                        <h3>LLM Mood Insight & Music Intent</h3>
+                    </div>
+                    <p class="insight-explanation" id="llmExplanationText">
+                        Your current mood appears to be Angry based on facial tension and high energy in your text input.
+                    </p>
+                    <div class="intent-badges-row" id="intentBadgesRow">
+                        <span class="intent-badge">⚡ Energy: <strong id="intentEnergyVal">92%</strong></span>
+                        <span class="intent-badge">💖 Valence: <strong id="intentValenceVal">40%</strong></span>
+                        <span class="intent-badge">🥁 Tempo: <strong id="intentTempoVal">135 BPM</strong></span>
+                    </div>
+                    <p class="insight-suggestion" id="llmSuggestionText">
+                        💡 <em>Try taking a 2-minute deep breath break. Here is some intense or calming music to help reset.</em>
+                    </p>
+                </div>
+
+                <!-- Music Recommendation Card -->
+                <div class="glass-card middle-card music-video-card">
+                    <div class="music-card-header">
+                        <div class="playlist-header">
+                            <span class="headphone-icon">🎧</span>
+                            <div class="playlist-titles">
+                                <h3 id="playlistCategoryTitle">Angry Playlist</h3>
+                                <p id="playlistGenreSubtitle">High Energy - Intense Telugu Beats</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Embed Frame -->
+                    <div class="video-player-frame">
+                        <div class="video-screen">
+                            <img id="videoPlayerThumbnail" src="https://img.youtube.com/vi/bWXazVhlyxQ/maxresdefault.jpg" alt="Music Video" class="player-thumbnail">
+                            <iframe id="youtubeIframe" src="" class="hidden-iframe" allow="autoplay; encrypted-media"></iframe>
+                            <div class="video-screen-overlay">
+                                <div class="player-controls-overlay">
+                                    <button class="overlay-btn" id="overlayPlayBtn">▶</button>
+                                    <span class="video-time" id="videoTimeDisplay">0:12 / 4:05</span>
+                                    <div class="video-progress-bar">
+                                        <div class="video-progress-fill" style="width: 15%;"></div>
+                                    </div>
+                                    <span class="overlay-icon">⚙️</span>
+                                    <span class="overlay-icon">⛶</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Now Playing, Tracks, Controls & AI Assistant Chat -->
+            <div class="grid-col col-right glass-card">
+
+                <!-- ── NOW PLAYING CARD (Image 2 style) ── -->
+                <div class="now-playing-card">
+
+                    <!-- Header row -->
+                    <div class="np-header">
+                        <span class="np-music-icon">🎵</span>
+                        <h3>Now Playing</h3>
+                    </div>
+
+                    <!-- Album Art + Track Meta row -->
+                    <div class="np-body">
+                        <!-- Album Art with glow border -->
+                        <div class="np-album-art-wrap">
+                            <img id="albumArtImg"
+                                 src="https://img.youtube.com/vi/bWXazVhlyxQ/mqdefault.jpg"
+                                 alt="Album Art"
+                                 class="np-album-art">
+                        </div>
+
+                        <!-- Track Info + Emotion Badge -->
+                        <div class="np-track-meta">
+                            <h2 class="np-track-title" id="playerTrackName">Papercut</h2>
+                            <p class="np-track-artist" id="playerArtistName">Linkin Park</p>
+
+                            <div class="np-emotion-row">
+                                <span class="np-emotion-emoji" id="npEmotionEmoji">🙂</span>
+                                <span class="np-emotion-pill" id="npEmotionPill">Emotion: Happy</span>
+                            </div>
+
+                            <p class="np-track-desc" id="npTrackDesc">
+                                Uplifting and energetic track matching your current mood.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Volume row -->
+                    <div class="np-volume-row">
+                        <span class="vol-icon">🔈</span>
+                        <input type="range" id="volumeSlider" min="0" max="100" value="70" class="np-volume-slider">
+                    </div>
+
+                    <!-- Progress bar -->
+                    <div class="np-progress-row">
+                        <span id="currentTime">0:12</span>
+                        <div class="np-progress-container" id="progressBarContainer">
+                            <div class="np-progress-fill" id="progressBar" style="width: 5%;"></div>
+                            <div class="np-progress-thumb" id="progressThumb" style="left: 5%;"></div>
+                        </div>
+                        <span id="totalTime">4:05</span>
+                    </div>
+
+                    <!-- Player Controls: Shuffle | Prev | Play/Pause | Next | Repeat -->
+                    <div class="np-controls">
+                        <button class="np-ctrl-btn" id="shuffleBtn" title="Shuffle">⇄</button>
+                        <button class="np-ctrl-btn" id="prevBtn" title="Previous">⏮</button>
+                        <button class="np-play-btn" id="playPauseBtn" title="Play/Pause">
+                            <span id="playPauseIcon">▶</span>
+                        </button>
+                        <button class="np-ctrl-btn" id="nextBtn" title="Next">⏭</button>
+                        <button class="np-ctrl-btn" id="repeatBtn" title="Repeat">↺</button>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <!-- Suggested Tracks List -->
+                <div class="suggested-tracks-section">
+                    <h4>Suggested Tracks:</h4>
+                    <ul class="tracks-list" id="suggestedTracksList">
+                        <li class="track-item active" data-url="">
+                            <span class="bullet">•</span> Linkin Park - Papercut
+                        </li>
+                        <li class="track-item" data-url="">
+                            <span class="bullet">•</span> System of a Down - Chop Suey!
+                        </li>
+                        <li class="track-item" data-url="">
+                            <span class="bullet">•</span> Disturbed - Down with the Sickness
+                        </li>
+                    </ul>
+                </div>
+
+                <hr class="divider">
+
+
+                <!-- 🤖 LLM AI Assistant Panel -->
+                <div class="ai-assistant-panel">
+                    <div class="assistant-header">
+                        <div class="assistant-title">
+                            <span class="bot-icon">🤖</span>
+                            <div>
+                                <h4>EmotionAI Assistant</h4>
+                                <span class="online-indicator"><span class="dot"></span> Online • LLM Powered</span>
+                            </div>
+                        </div>
+                        <button class="clear-chat-btn" id="clearChatBtn" title="Clear Chat">🗑️</button>
+                    </div>
+
+                    <!-- Chat Message Area -->
+                    <div class="chat-messages-container" id="chatMessagesContainer">
+                        <div class="chat-bubble bot">
+                            <span class="bubble-sender">🤖 EmotionAI Assistant</span>
+                            <p>Hello! I am your Emotion-Aware AI Assistant. Ask me anything about your current mood or music recommendations!</p>
+                        </div>
+                    </div>
+
+                    <!-- Suggested Question Chips -->
+                    <div class="suggested-chips-container">
+                        <button class="chip-btn" data-question="Why did you recommend this song?">Why this song?</button>
+                        <button class="chip-btn" data-question="Give me some happy Telugu songs.">Happy Telugu Songs</button>
+                        <button class="chip-btn" data-question="How has my mood changed today?">Mood Shifts Today</button>
+                    </div>
+
+                    <!-- Chat Input Box -->
+                    <div class="chat-input-bar">
+                        <input type="text" id="chatInput" placeholder="Ask EmotionAI..." autocomplete="off">
+                        <button id="sendChatBtn" class="send-btn">➤</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Warning Banner -->
+        <footer class="bottom-warning-banner">
+            ⚡ EmotionAI Architecture: Computer Vision + NLP → Multimodal Fusion → LLM → Music Intent → Music Engine
+        </footer>
+    </div>
+
+    <!-- Hidden audio element for HTML5 playback -->
+    <audio id="audioPlayer" preload="metadata"></audio>
+
+    <!-- Dashboard Analytics Modal / Overlay for History -->
+    <section class="dashboard-section glass-card hidden" id="dashboardSection">
+        <h2 class="section-title">Your Emotion Analytics & AI Daily Summary</h2>
+        
+        <div class="llm-daily-summary-box" id="llmDailySummaryBox">
+            <span class="summary-icon">💡</span>
+            <p id="llmDailyInsightText">AI Insight: You experienced mostly positive energy today with Happy being your primary mood.</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="chart-container">
+                <h3>Today's Mood Distribution</h3>
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Recent Emotion Timeline</h3>
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+        <button class="btn btn-secondary" id="closeDashboardBtn" style="margin-top: 20px;">Back to Main View</button>
+    </section>
+
+    <!-- Login Modal -->
+    <div class="modal hidden" id="loginModal">
+        <div class="modal-content glass-card">
+            <h2>Welcome to EmotionAI</h2>
+            <div style="margin: 20px 0;">
+                <input type="text" id="usernameInput" placeholder="Enter Username" class="text-input" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn btn-primary" id="submitLoginBtn">Login / Register</button>
+                <button class="btn btn-secondary" id="closeLoginBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div class="status-message" id="statusMessage"></div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+
+</html>
